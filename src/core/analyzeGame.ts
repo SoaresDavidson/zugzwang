@@ -1,8 +1,9 @@
 import { Chess } from 'chess.js';
 import { estimateRating, gameAccuracy } from './accuracy';
-import { classifyMove } from './classify';
+import { abortError } from './abort';
+import { classifyPly } from './classify';
 import { explainMove } from './explain';
-import { isSacrifice, materialSwing } from './material';
+import { materialSwing } from './material';
 import { parseUci } from './moves';
 import { isBookFen, lookupOpening } from './openings';
 import { ANALYSE_OPTIONS, ENGINE_ID, MATE_CP, RULES_VERSION } from './thresholds';
@@ -37,10 +38,6 @@ export function terminalEval(fen: string): PositionEval | null {
   return { fen, lines: [{ move: '', score: { kind: 'cp', value }, pv: [] }] };
 }
 
-function abortError(): DOMException {
-  return new DOMException('Aborted', 'AbortError');
-}
-
 export async function analyzeGame(
   game: ParsedGame,
   engine: Engine,
@@ -72,14 +69,7 @@ export async function analyzeGame(
     allBook = isBook;
     if (isBook) opening = lookupOpening(ply.fenAfter);
 
-    const category = classifyMove({
-      color: ply.color,
-      uci: ply.uci,
-      before,
-      after,
-      isBook,
-      isSacrifice: isSacrifice(ply.fenBefore, ply.uci, pv),
-    });
+    const category = classifyPly({ color: ply.color, uci: ply.uci, fenBefore: ply.fenBefore, before, after, isBook });
 
     const bestUci = before.lines[0]?.move || null;
     let bestSan: string | null = null;

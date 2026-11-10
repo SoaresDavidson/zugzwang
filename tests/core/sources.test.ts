@@ -200,7 +200,7 @@ describe('fetchLichessGames', () => {
       ]),
     })
     const [x] = await fetchLichessGames('u', undefined, asFetch(f))
-    expect(x.white).toEqual({ name: 'Alice', rating: 1777 })
+    expect(x.white).toEqual({ name: 'Alice', rating: 1777, aiLevel: null })
     expect(x.black.name).toBe('Bob')
     expect(x.black.rating).toBeNull()
     expect(x.pgn).toContain('[Result "1-0"]')
@@ -209,7 +209,7 @@ describe('fetchLichessGames', () => {
   it('adversário anônimo/IA na fixture (correspondence) tem rating null', async () => {
     const g = await fetchLichessGames('Davi', undefined, asFetch(fakeFetch))
     const c = g.find(x => x.id === 'rlpjN84W')!
-    expect(c.white).toEqual({ name: 'equili01', rating: 1500 })
+    expect(c.white).toEqual({ name: 'equili01', rating: 1500, aiLevel: null })
     expect(c.black.rating).toBeNull()
   })
 
@@ -418,8 +418,8 @@ describe('fetchChesscomGames', () => {
   it('preenche jogadores, ratings e pgn', async () => {
     const g = await fetchChesscomGames('erik', undefined, asFetch(fakeFetch))
     const x = g.find(y => y.playedAt === 1794242268000)!
-    expect(x.white).toEqual({ name: '0_0_KING_0_0', rating: 1919 })
-    expect(x.black).toEqual({ name: 'erik', rating: 1875 })
+    expect(x.white).toEqual({ name: '0_0_KING_0_0', rating: 1919, aiLevel: null })
+    expect(x.black).toEqual({ name: 'erik', rating: 1875, aiLevel: null })
     expect(x.pgn).toContain('[Result "1-0"]')
   })
 
@@ -447,14 +447,25 @@ describe('fetchChesscomGames', () => {
     await expect(fetchChesscomGames('x', undefined, statusFetch(404))).rejects.toBeInstanceOf(GameError)
   })
 
-  it.each([[404, 'user-not-found'], [429, 'rate-limited'], [500, 'network']])(
-    'HTTP %i na busca de um mês → %s',
-    async (status, code) => {
+  it('HTTP 429 na busca de um mês → rate-limited', async () => {
+    const f = makeFetch({
+      [ccArchivesUrl('u')]: JSON.stringify({ archives: [ccMonthUrl('u', '2026/10'), ccMonthUrl('u', '2026/11')] }),
+      [ccMonthUrl('u', '2026/11')]: 429,
+      [ccMonthUrl('u', '2026/10')]: JSON.stringify({ games: [ccGame('n', 2)] }),
+    })
+    await expect(fetchChesscomGames('u', undefined, asFetch(f))).rejects.toMatchObject({ code: 'rate-limited' })
+  })
+
+  it.each([[404, 'user-not-found'], [500, 'network']])(
+    'HTTP %i na busca de um mês → mês pulado (%s ignorado)',
+    async (status) => {
       const f = makeFetch({
-        [ccArchivesUrl('u')]: JSON.stringify({ archives: [ccMonthUrl('u', '2026/11')] }),
+        [ccArchivesUrl('u')]: JSON.stringify({ archives: [ccMonthUrl('u', '2026/10'), ccMonthUrl('u', '2026/11')] }),
         [ccMonthUrl('u', '2026/11')]: status,
+        [ccMonthUrl('u', '2026/10')]: JSON.stringify({ games: [ccGame('n', 2)] }),
       })
-      await expect(fetchChesscomGames('u', undefined, asFetch(f))).rejects.toMatchObject({ code })
+      const g = await fetchChesscomGames('u', undefined, asFetch(f))
+      expect(g.map(x => x.id)).toEqual(['n'])
     },
   )
 
