@@ -2,12 +2,9 @@ import { readdir, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { analyzeGame } from '../src/core/analyzeGame';
 import { parsePgn } from '../src/core/pgn';
-import { ANALYSE_OPTIONS } from '../src/core/thresholds';
 import type { MoveCategory } from '../src/core/types';
 import { compareCategories, formatReport, type CalibrationFixture } from './calibration';
 import { createNodeEngine } from './nodeEngine';
-
-void ANALYSE_OPTIONS; // analyzeGame já usa ANALYSE_OPTIONS ao chamar o motor.
 
 const DIR = 'tests/fixtures/calibration';
 
@@ -23,7 +20,9 @@ async function main() {
         const game = parsePgn(fx.pgn);
         const analysis = await analyzeGame(game, engine);
         const actual = analysis.moves.map((m) => m.category);
-        compareCategories([{ expected: fx.expected, actual }]);
+        if (fx.expected.length !== actual.length) {
+          throw new Error(`expected tem ${fx.expected.length} lances, a partida tem ${actual.length}`);
+        }
         results.push({ expected: fx.expected, actual });
         console.log(`ok: ${file}`);
       } catch (e) {

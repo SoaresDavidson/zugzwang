@@ -1,15 +1,13 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
 import { fetchChesscomGames } from '../../core/sources/chesscom'
 import { fetchLichessGames } from '../../core/sources/lichess'
 import type { GameSummary, Source, TimeClass } from '../../core/sources/types'
-import { GameError } from '../../core/types'
 import { getProfile, setProfile } from '../../storage/db'
-import { ERROR_MESSAGE, LABEL, TIME_CLASS_LABEL, playerLabel } from '../messages'
+import { LABEL, SOURCE_NAME, TIME_CLASS_LABEL, errorMessage, playerLabel } from '../messages'
 
 type Fetcher = (username: string, signal?: AbortSignal, fetchFn?: typeof fetch) => Promise<GameSummary[]>
 
-const SOURCE_NAME: Record<Source, string> = { lichess: 'Lichess', chesscom: 'Chess.com' }
 const FILTERS: Array<TimeClass | 'all'> = ['all', 'bullet', 'blitz', 'rapid', 'classical']
 
 const fmtDate = (t: number) => new Date(t).toLocaleDateString('pt-BR', { timeZone: 'UTC' })
@@ -29,6 +27,17 @@ export function UserSearch({
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const current = useRef<AbortController | null>(null)
+
+  useEffect(() => () => { current.current?.abort(); current.current = null }, [])
+
+  function changeSource(s: Source) {
+    current.current?.abort()
+    current.current = null
+    setSource(s)
+    setGames(null)
+    setError(null)
+    setLoading(false)
+  }
 
   async function submit(e: FormEvent) {
     e.preventDefault()
@@ -50,7 +59,7 @@ export function UserSearch({
     } catch (err) {
       if (stale()) return
       setGames(null)
-      setError(ERROR_MESSAGE[err instanceof GameError ? err.code : 'network'](SOURCE_NAME[source]))
+      setError(errorMessage(err, 'network', SOURCE_NAME[source]))
     } finally {
       if (!stale()) setLoading(false)
     }
@@ -61,14 +70,14 @@ export function UserSearch({
   return (
     <div className="stack">
       <form className="stack" onSubmit={submit}>
-        <div className="seg" role="radiogroup" aria-label="Fonte">
+        <div className="seg" role="radiogroup" aria-label={LABEL.sourceField}>
           {(Object.keys(SOURCE_NAME) as Source[]).map((s) => (
             <label key={s} className={source === s ? 'seg-item on' : 'seg-item'}>
               <input
                 type="radio"
                 name="source"
                 checked={source === s}
-                onChange={() => setSource(s)}
+                onChange={() => changeSource(s)}
               />
               {SOURCE_NAME[s]}
             </label>
@@ -113,7 +122,7 @@ export function UserSearch({
                 <button type="button" className="game" onClick={() => onPick(g)}>
                   <span className="game-players">
                     <span>{side(g.white)}</span>
-                    <span className="vs">contra</span>
+                    <span className="vs">{LABEL.versus}</span>
                     <span>{side(g.black)}</span>
                   </span>
                   <span className="game-meta">

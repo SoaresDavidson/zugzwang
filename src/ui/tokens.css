@@ -14,6 +14,8 @@
   --font: 'Inter Variable', system-ui, sans-serif;
   --s1: 0.25rem; --s2: 0.5rem; --s3: 0.75rem; --s4: 1rem; --s5: 1.5rem; --s6: 2.5rem;
   --radius: 6px;
+  --touch-min: 44px;
+  --chip-min: 36px;
   color-scheme: light dark;
 }
 @media (prefers-color-scheme: dark) {
@@ -52,26 +54,26 @@ body {
 .error { margin: 0; padding: var(--s3) var(--s4); color: var(--danger); border-left: 4px solid var(--danger); background: var(--surface); }
 
 .tabs { display: flex; gap: var(--s5); border-bottom: 1px solid var(--line); margin-bottom: var(--s5); }
-.tab { font: inherit; font-weight: 600; color: var(--ink-soft); background: none; border: 0; border-bottom: 3px solid transparent; padding: var(--s2) 0; margin-bottom: -1px; cursor: pointer; min-height: 44px; }
+.tab { font: inherit; font-weight: 600; color: var(--ink-soft); background: none; border: 0; border-bottom: 3px solid transparent; padding: var(--s2) 0; margin-bottom: -1px; cursor: pointer; min-height: var(--touch-min); }
 .tab.on { color: var(--ink); border-bottom-color: var(--accent); }
 
 .field { display: flex; flex-direction: column; gap: var(--s2); }
 .field-label { font-weight: 600; font-size: 0.9rem; }
-.input { font: inherit; color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: var(--s3); width: 100%; min-height: 44px; }
+.input { font: inherit; color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: var(--s3); width: 100%; min-height: var(--touch-min); }
 .pgn { font-family: ui-monospace, 'SF Mono', Menlo, monospace; font-size: 0.9rem; resize: vertical; }
 
-.btn { font: inherit; font-weight: 600; color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: var(--s2) var(--s5); min-height: 44px; cursor: pointer; }
+.btn { font: inherit; font-weight: 600; color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: var(--s2) var(--s5); min-height: var(--touch-min); cursor: pointer; }
 .btn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
 .btn:disabled { opacity: 0.55; cursor: not-allowed; }
 
 .seg { display: inline-flex; align-self: flex-start; border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
-.seg-item { position: relative; padding: var(--s2) var(--s4); min-height: 44px; display: flex; align-items: center; cursor: pointer; font-weight: 600; color: var(--ink-soft); background: var(--surface); }
+.seg-item { position: relative; padding: var(--s2) var(--s4); min-height: var(--touch-min); display: flex; align-items: center; cursor: pointer; font-weight: 600; color: var(--ink-soft); background: var(--surface); }
 .seg-item.on { background: var(--accent); color: var(--accent-ink); }
 .seg-item input { position: absolute; opacity: 0; inset: 0; margin: 0; cursor: pointer; }
 .seg-item:has(input:focus-visible) { outline: 3px solid var(--focus); outline-offset: -3px; }
 
 .chips { display: flex; gap: var(--s2); flex-wrap: wrap; }
-.chip { font: inherit; font-size: 0.9rem; color: var(--ink-soft); background: var(--surface); border: 1px solid var(--line); border-radius: 999px; padding: var(--s1) var(--s4); min-height: 36px; cursor: pointer; }
+.chip { font: inherit; font-size: 0.9rem; color: var(--ink-soft); background: var(--surface); border: 1px solid var(--line); border-radius: 999px; padding: var(--s1) var(--s4); min-height: var(--chip-min); cursor: pointer; }
 .chip.on { color: var(--accent-ink); background: var(--accent); border-color: var(--accent); }
 
 .games { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--line); }

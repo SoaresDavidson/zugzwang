@@ -1,9 +1,8 @@
 import { useState } from 'react'
 import type { FormEvent } from 'react'
 import { parsePgn } from '../../core/pgn'
-import { GameError } from '../../core/types'
 import type { ParsedGame } from '../../core/types'
-import { ERROR_MESSAGE, LABEL } from '../messages'
+import { LABEL, errorMessage } from '../messages'
 
 export function PgnPaste({ onGame }: { onGame: (g: ParsedGame) => void }) {
   const [text, setText] = useState('')
@@ -16,7 +15,7 @@ export function PgnPaste({ onGame }: { onGame: (g: ParsedGame) => void }) {
       setError(null)
       onGame(game)
     } catch (err) {
-      setError(ERROR_MESSAGE[err instanceof GameError ? err.code : 'invalid-pgn']())
+      setError(errorMessage(err, 'invalid-pgn'))
     }
   }
 

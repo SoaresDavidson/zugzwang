@@ -1,7 +1,8 @@
+import { GameError } from '../core/types'
 import type { GameErrorCode } from '../core/types'
-import type { Player, TimeClass } from '../core/sources/types'
+import type { Player, Source, TimeClass } from '../core/sources/types'
 
-export const ERROR_MESSAGE: Record<GameErrorCode | 'engine-failed', (source?: string) => string> = {
+export const ERROR_MESSAGE: Record<GameErrorCode | 'engine-failed' | 'analysis-failed',(source?: string) => string> = {
   'invalid-pgn': () => 'Não consegui ler esse PGN. Confira se colou a partida inteira.',
   'variant-unsupported': () => 'Por enquanto só analiso xadrez padrão. Xadrez 960 e outras variantes ficam de fora.',
   'custom-position': () =>
@@ -11,7 +12,18 @@ export const ERROR_MESSAGE: Record<GameErrorCode | 'engine-failed', (source?: st
   'rate-limited': (source) => `O ${source} pediu uma pausa. Tente de novo em um minuto.`,
   network: (source) => `Falha de conexão com o ${source}.`,
   'engine-failed': () => 'O motor de análise não carregou neste navegador.',
+  'analysis-failed': () => 'Algo deu errado durante a análise. Tente de novo.',
 }
+
+/** Traduz um erro em mensagem; erros que não são GameError usam `fallback`. */
+export function errorMessage(err: unknown, fallback: GameErrorCode, source?: string): string {
+  return ERROR_MESSAGE[err instanceof GameError ? err.code : fallback](source);
+}
+
+export const SOURCE_NAME: Record<Source, string> = { lichess: 'Lichess', chesscom: 'Chess.com' };
+
+export const progressText = (done: number, total: number) =>
+  `Analisando ${done} de ${total} posições`;
 
 export function playerLabel(p: Player): string {
   if (p.name) return p.name
@@ -40,6 +52,10 @@ export const LABEL = {
   all: 'Todas',
   noGames: 'Nenhuma partida nesse ritmo.',
   back: 'Voltar',
+  versus: 'contra',
+  sourceField: 'Fonte',
+  unnamedPlayer: '?',
+  tabsLabel: 'Como informar a partida',
   analyzing: 'Analisando',
   analysisDone: 'Análise pronta',
   fromCache: 'Resultado guardado neste navegador.',

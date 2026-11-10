@@ -1,8 +1,7 @@
-import { abortError } from '../core/abort';
 import { ENGINE_HANDSHAKE_TIMEOUT_MS, ENGINE_HASH_MB } from '../core/thresholds';
-import { parseUciInfo } from '../core/uci';
-import type { AnalyseOptions, Color, Engine, EngineLine, PositionEval } from '../core/types';
+import type { AnalyseOptions, Engine, PositionEval } from '../core/types';
 import { pickEngineBuild } from './build';
+import { UciSession } from './uciSession';
 
 export type WorkerLike = {
   postMessage(msg: string): void;
@@ -15,10 +14,9 @@ function realWorker(url: string): WorkerLike {
   return new Worker(url) as unknown as WorkerLike;
 }
 
+/** Adaptador fino: Worker do navegador <-> UciSession. */
 export class StockfishEngine implements Engine {
-  private queue: Promise<unknown> = Promise.resolve();
-
-  private readonly pending = new Set<(e: Error) => void>();
+  private readonly session: UciSession;
 
   private dead = false;
 
@@ -29,6 +27,8 @@ export class StockfishEngine implements Engine {
 
   private constructor(worker: WorkerLike) {
     this.worker = worker;
+    this.session = new UciSession((line) => worker.postMessage(line));
+    worker.onmessage = (e) => this.session.feed(String(e.data));
     worker.onerror = () => this.kill();
   }
 
@@ -37,8 +37,7 @@ export class StockfishEngine implements Engine {
     this.dead = true;
     this.worker.onmessage = null;
     this.worker.onerror = null;
-    for (const reject of [...this.pending]) reject(new Error('engine-failed'));
-    this.pending.clear();
+    this.session.kill(new Error('engine-failed'));
     this.onDead?.();
   }
 
@@ -76,7 +75,6 @@ export class StockfishEngine implements Engine {
         else if (line === 'readyok' && uciok) {
           done = true;
           clearTimeout(timer);
-          worker.onmessage = null;
           resolve(new StockfishEngine(worker));
         }
       };
@@ -88,47 +86,7 @@ export class StockfishEngine implements Engine {
   }
 
   analyse(fen: string, opts: AnalyseOptions, signal?: AbortSignal): Promise<PositionEval> {
-    if (this.dead) return Promise.reject(new Error('engine-failed'));
-    const run = () => (this.dead ? Promise.reject(new Error('engine-failed')) : this.run(fen, opts, signal));
-    const p = this.queue.then(run, run);
-    this.queue = p.catch(() => {});
-    return new Promise<PositionEval>((resolve, reject) => {
-      this.pending.add(reject);
-      p.then(resolve, reject).finally(() => this.pending.delete(reject));
-    });
-  }
-
-  private run(fen: string, opts: AnalyseOptions, signal?: AbortSignal): Promise<PositionEval> {
-    if (signal?.aborted) return Promise.reject(abortError());
-    const side = (fen.split(' ')[1] === 'b' ? 'b' : 'w') as Color;
-    const worker = this.worker;
-    return new Promise<PositionEval>((resolve, reject) => {
-      const best = new Map<number, EngineLine>();
-      let aborted = false;
-      const onAbort = () => {
-        if (aborted) return;
-        aborted = true;
-        worker.postMessage('stop');
-      };
-      signal?.addEventListener('abort', onAbort, { once: true });
-      worker.onmessage = (e) => {
-        const line = String(e.data).trim();
-        if (line.startsWith('bestmove')) {
-          worker.onmessage = null;
-          signal?.removeEventListener('abort', onAbort);
-          if (aborted || signal?.aborted) { reject(abortError()); return; }
-          const lines = [...best.entries()].sort((a, b) => a[0] - b[0]).map(([, l]) => l);
-          resolve({ fen, lines });
-        } else if (line.startsWith('info')) {
-          const info = parseUciInfo(line, side);
-          if (info) best.set(info.multipv, { move: info.pv[0], score: info.score, pv: info.pv });
-        }
-      };
-      worker.postMessage(`setoption name MultiPV value ${opts.multipv}`);
-      worker.postMessage(`position fen ${fen}`);
-      worker.postMessage(`go movetime ${opts.movetimeMs}`);
-      if (signal?.aborted) onAbort();
-    });
+    return this.session.analyse(fen, opts, signal);
   }
 
   terminate(): void {
