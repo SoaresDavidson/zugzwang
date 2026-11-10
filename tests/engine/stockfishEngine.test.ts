@@ -40,7 +40,8 @@ class FakeWorker {
   terminated = false;
   silent = false; // não responde ao handshake
   autoGo = false; // responde sozinho ao go
-  constructor(public url: string) {}
+  url: string;
+  constructor(url: string) { this.url = url; }
   emit(line: string) { this.onmessage?.({ data: line }); }
   postMessage(msg: string) {
     this.sent.push(msg);
