@@ -332,7 +332,8 @@ Ordem das regras (primeira que casar vence):
    e não é o mate já dado (scoreToCp do ponto de vista de quem moveu < MATE_CP) → missedMate
 3. loss ≤ BRILLIANT_MAX_LOSS && isSacrifice && winBefore < BRILLIANT_MAX_WIN_BEFORE → brilliant
 4. uci == before.lines[0].move && lines[1] existe
-   && moverWin(lines[0]) - moverWin(lines[1]) ≥ GREAT_GAP         → great
+   && moverWin(lines[0]) - moverWin(lines[1]) ≥ GREAT_GAP
+   && moverWin(lines[1]) < GREAT_MAX_SECOND_WIN (70)              → great
 5. uci == before.lines[0].move                                    → best
 6. loss ≥ 30 blunder; ≥ 20 mistake; ≥ 10 inaccuracy; < 2 excellent; senão good
 ```
