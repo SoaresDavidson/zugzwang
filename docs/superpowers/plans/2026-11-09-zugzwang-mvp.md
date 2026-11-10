@@ -12,11 +12,13 @@
 
 ## Global Constraints
 
-- Toda string visível ao usuário em pt-BR, centralizada em `src/ui/messages.ts`.
+- Toda string visível ao usuário em pt-BR. Textos gerados por lance (`CATEGORY_LABEL`, `explainMove`) ficam em `src/core/explain.ts`; o resto da UI em `src/ui/messages.ts`.
 - SAN exibido com letras portuguesas: N→C, B→B, R→T, Q→D, K→R (`localizeSan`, Task 1).
 - Nenhum asset, ícone, som ou cor copiado do chess.com. Sons sintetizados com Web Audio no MVP (provisórios, serão trocados por sons próprios depois), ícones em SVG/texto próprios.
 - `src/core/` não importa React, DOM, `window`, `indexedDB` nem `Worker`. `fetch` e `crypto.subtle` são permitidos (existem no Node 24).
-- Avaliações (`Score`) sempre do ponto de vista das brancas. Conversão para o ponto de vista de quem moveu só via `moverWin` (Task 1).
+- Avaliações (`Score`) sempre do ponto de vista das brancas. Conversão para o ponto de vista de quem moveu só via `moverWin`, `moverCp` e `isMateFor` de `src/core/winPercent.ts`.
+- Invariante de `Score`: `mate` nunca vale 0. Quem produz avaliações (`parseUciInfo`, `terminalEval`) converte posição de mate em `cp ±MATE_CP`. Todo `PositionEval` passado a `classifyMove` tem ao menos uma linha.
+- Parsing de UCI só via `parseUci` (`src/core/moves.ts`); EPD só via `toEpd` (`src/core/epd.ts`); valores de peça só via `PIECE_VALUE` (`thresholds.ts`).
 - Todos os limiares e versões em `src/core/thresholds.ts`. Nenhum número mágico de classificação fora dele.
 - Orçamento do motor: `movetime 500`, `MultiPV 2`.
 - Só xadrez padrão a partir da posição inicial.
@@ -588,6 +590,8 @@ it('converte score das pretas para o ponto de vista das brancas', () =>
 it('mate', () => expect(parseUciInfo('info depth 5 multipv 2 score mate -2 pv a1a2', 'w')!.score)
   .toEqual({ kind: 'mate', value: -2 }));
 it('ignora linha sem pv', () => expect(parseUciInfo('info depth 1 currmove e2e4', 'w')).toBeNull());
+it('mate 0 vira cp contra quem está em mate', () =>
+  expect(parseUciInfo('info depth 1 multipv 1 score mate 0 pv a1a1', 'b')!.score).toEqual({ kind: 'cp', value: 10000 }));
 
 // tests/engine/build.test.ts
 it('com isolamento usa multi-thread', () =>

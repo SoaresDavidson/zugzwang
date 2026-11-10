@@ -6,11 +6,11 @@ it('dama entregue é sacrifício', () => {
   expect(materialSwing(F, 'd1d5', ['e6d5'])).toBe(-9);
   expect(isSacrifice(F, 'd1d5', ['e6d5'])).toBe(true);
 });
-it('lance quieto não é sacrifício', () => expect(isSacrifice(F, 'd1d2', ['e8d7'])).toBe(false));
+it('lance quieto não é sacrifício', () => expect(isSacrifice(F, 'd1d2', ['e8f7'])).toBe(false));
 it('troca equilibrada não é sacrifício', () =>
   expect(materialSwing('4k3/3p4/4n3/8/3N4/8/8/4K3 w - - 0 1', 'd4e6', ['d7e6'])).toBe(0));
 it('respeita a janela de plies', () =>
-  expect(materialSwing(F, 'd1d2', ['e8d7', 'd2d7'], 1)).toBe(0));
+  expect(materialSwing(F, 'd1d2', ['e8f7', 'd2d7'], 1)).toBe(0));
 it('para em PV ilegal sem lançar', () => expect(materialSwing(F, 'd1d2', ['a1a2'])).toBe(0));
 
 // Casos de borda adicionais (todos os lances conferidos como legais com chess.js).
