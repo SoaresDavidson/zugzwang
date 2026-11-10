@@ -1,4 +1,5 @@
 import { localizeSan } from './san';
+import { PIECE_VALUE } from './thresholds';
 import type { MoveCategory } from './types';
 
 export const CATEGORY_LABEL: Record<MoveCategory, string> = {
@@ -11,7 +12,13 @@ export interface ExplainFacts {
   allowsMateIn: number | null; missedMateIn: number | null;
 }
 
-const LOST: Record<number, string> = { 1: 'um peão', 2: 'a qualidade', 3: 'uma peça', 5: 'a torre', 9: 'a dama' };
+const LOST: Record<number, string> = {
+  [PIECE_VALUE.p]: 'um peão',
+  2: 'a qualidade',
+  [PIECE_VALUE.n]: 'uma peça',
+  [PIECE_VALUE.r]: 'a torre',
+  [PIECE_VALUE.q]: 'a dama',
+};
 
 export function explainMove(f: ExplainFacts): string {
   const parts = [`${CATEGORY_LABEL[f.category]}.`];

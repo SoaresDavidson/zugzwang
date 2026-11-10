@@ -1,3 +1,4 @@
+import type { PieceSymbol } from 'chess.js';
 import type { AnalyseOptions, MoveCategory } from './types';
 
 /** Sobe a cada mudança de regra de classificação. Invalida o cache. */
@@ -22,3 +23,6 @@ export const SACRIFICE_WINDOW_PLIES = 4;
 export const RATING = { intercept: -1000, slope: 35, min: 400, max: 3200 } as const;
 
 export const GOOD_OR_BETTER: MoveCategory[] = ['book', 'brilliant', 'great', 'best', 'excellent', 'good'];
+
+/** Valor de material de cada peça, em peões. */
+export const PIECE_VALUE: Record<PieceSymbol, number> = { p: 1, n: 3, b: 3, r: 5, q: 9, k: 0 };

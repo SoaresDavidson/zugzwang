@@ -2,11 +2,10 @@ import { Chess } from 'chess.js';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { toEpd } from '../src/core/epd';
 
 const BASE = 'https://raw.githubusercontent.com/lichess-org/chess-openings/master';
 const OUT = resolve(dirname(fileURLToPath(import.meta.url)), '../src/core/data/openings.json');
-
-const toEpd = (fen: string) => fen.split(' ').slice(0, 4).join(' ');
 
 const book: Record<string, [string, string]> = {};
 const lengths = new Map<string, number>();
