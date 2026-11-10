@@ -1,7 +1,7 @@
 import { CATEGORY_LABEL } from '../../core/explain'
 import type { MoveCategory } from '../../core/types'
 
-export const CATEGORY_GLYPH: Record<MoveCategory, string> = {
+const CATEGORY_GLYPH: Record<MoveCategory, string> = {
   book: '≡', brilliant: '!!', great: '!', best: '★', excellent: '✓✓',
   good: '✓', inaccuracy: '?!', mistake: '?', blunder: '??', missedMate: '#',
 }

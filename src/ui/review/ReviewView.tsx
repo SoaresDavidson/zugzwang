@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 import { initialMoveIndex } from '../../core/categories'
-import type { ParsedGame } from '../../core/types'
+import type { AnalyzedMove, ParsedGame } from '../../core/types'
 import { whiteWinAfterMoves, whiteWinSeries } from '../../core/winPercent'
 import { LABEL, progressText } from '../messages'
 import { useAnalysis } from '../useAnalysis'
@@ -12,6 +12,8 @@ import { EvalGraph } from './EvalGraph'
 import { MoveDetail } from './MoveDetail'
 import { MoveList } from './MoveList'
 import { Summary } from './Summary'
+
+const NO_MOVES: AnalyzedMove[] = []
 
 interface Props {
   game: ParsedGame
@@ -24,8 +26,8 @@ export function ReviewView({ game, onBack, analysisState, BoardComponent = Board
   const hook = useAnalysis(analysisState ? null : game)
   const state = analysisState ?? hook
   const analysis = state.status === 'done' ? state.analysis : null
-  const moves = analysis?.moves ?? []
-  const listMoves = analysis ? moves : state.progress?.moves ?? []
+  const moves = analysis?.moves ?? NO_MOVES
+  const listMoves = analysis ? moves : state.progress?.moves ?? NO_MOVES
   const count = listMoves.length
   const titleRef = useRef<HTMLHeadingElement>(null)
   const [picked, setPicked] = useState<number | null>(null)

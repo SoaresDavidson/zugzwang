@@ -39,8 +39,10 @@ export function useAnalysis(
 ): AnalysisState {
   const [state, setState] = useState<AnalysisState>(IDLE)
   const latest = useRef({ game, engineFactory })
-  latest.current = { game, engineFactory }
   const id = gameId(game)
+
+  // Declarado antes do efeito principal: roda primeiro no mesmo commit.
+  useEffect(() => { latest.current = { game, engineFactory } })
 
   useEffect(() => {
     const { game: current, engineFactory: factory } = latest.current
