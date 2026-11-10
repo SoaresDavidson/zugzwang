@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { Suspense, lazy, useEffect, useRef, useState } from 'react'
 import type { KeyboardEvent } from 'react'
 import { parsePgn } from '../core/pgn'
 import type { GameSummary } from '../core/sources/types'
@@ -6,7 +6,9 @@ import type { ParsedGame } from '../core/types'
 import { PgnPaste } from './input/PgnPaste'
 import { UserSearch } from './input/UserSearch'
 import { LABEL, errorMessage } from './messages'
-import { ReviewView } from './review/ReviewView'
+
+// Revisão (com chessground e o CSS do tabuleiro) só carrega quando há partida.
+const ReviewView = lazy(() => import('./review/ReviewView').then((m) => ({ default: m.ReviewView })))
 
 type Tab = 'paste' | 'search'
 const TABS: ReadonlyArray<readonly [Tab, string]> = [['paste', LABEL.tabPaste], ['search', LABEL.tabSearch]]
@@ -17,6 +19,13 @@ export function App() {
   const [game, setGame] = useState<ParsedGame | null>(null)
   const [tab, setTab] = useState<Tab>('paste')
   const [pickError, setPickError] = useState<string | null>(null)
+  const hadGame = useRef(false)
+
+  // Ao voltar da revisão, o foco vai para a aba ativa.
+  useEffect(() => {
+    if (hadGame.current && !game) document.getElementById(tabId(tab))?.focus()
+    hadGame.current = game !== null
+  }, [game, tab])
 
   function pick(s: GameSummary) {
     try {
@@ -48,9 +57,13 @@ export function App() {
           {Array.from({ length: 8 }, (_, i) => <i key={i} />)}
         </div>
         <h1>{LABEL.appName}</h1>
-        <p className="muted">{LABEL.tagline}</p>
+        {!game && <p className="muted">{LABEL.tagline}</p>}
       </header>
-      {game && <ReviewView game={game} onBack={() => setGame(null)} />}
+      {game && (
+        <Suspense fallback={<p className="muted" role="status">{LABEL.loading}</p>}>
+          <ReviewView game={game} onBack={() => setGame(null)} />
+        </Suspense>
+      )}
       {/* A entrada fica montada e só escondida, para "Voltar" devolver tudo como estava. */}
       <div hidden={game !== null}>
         <div className="tabs" role="tablist" aria-label={LABEL.tabsLabel}>

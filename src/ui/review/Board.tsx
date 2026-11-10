@@ -1,10 +1,10 @@
-import { Chess } from 'chess.js'
 import { Chessground } from 'chessground'
 import type { Api } from 'chessground/api'
 import type { Key } from 'chessground/types'
 import { useEffect, useRef } from 'react'
 import 'chessground/assets/chessground.base.css'
 import 'chessground/assets/chessground.cburnett.css'
+import { legalDests, uciFromMove } from '../../core/moves'
 import type { Color } from '../../core/types'
 import { LABEL } from '../messages'
 
@@ -16,38 +16,18 @@ export type BoardProps = {
   onMove?: (uci: string) => void
 }
 
-function legalDests(fen: string): Map<Key, Key[]> {
-  const dests = new Map<Key, Key[]>()
-  try {
-    for (const m of new Chess(fen).moves({ verbose: true })) {
-      const list = dests.get(m.from as Key) ?? []
-      list.push(m.to as Key)
-      dests.set(m.from as Key, list)
-    }
-  } catch { /* FEN inválido: sem destinos */ }
-  return dests
-}
-
-/** Promoção sempre para dama: o retry não pergunta a peça. */
-function toUci(fen: string, from: string, to: string): string {
-  try {
-    const promo = new Chess(fen).moves({ verbose: true }).some((m) => m.from === from && m.to === to && m.promotion)
-    return `${from}${to}${promo ? 'q' : ''}`
-  } catch {
-    return `${from}${to}`
-  }
-}
-
 const FULL = { w: 'white', b: 'black' } as const
+const squares = (k: string): Key[] => [k.slice(0, 2) as Key, k.slice(2, 4) as Key]
 const turnOf = (fen: string) => FULL[fen.split(' ')[1] === 'b' ? 'b' : 'w']
 
 export function Board({ fen, lastMove, arrow, movable, onMove }: BoardProps) {
   const host = useRef<HTMLDivElement>(null)
   const api = useRef<Api | null>(null)
   const onMoveRef = useRef(onMove)
-  onMoveRef.current = onMove
-  const fenRef = useRef(fen)
-  fenRef.current = fen
+  useEffect(() => { onMoveRef.current = onMove })
+  // Casas como texto ("e2e4"): o pai pode recriar os arrays a cada render sem reconfigurar o tabuleiro.
+  const last = lastMove ? lastMove.join('') : ''
+  const arrowKey = arrow ? arrow.join('') : ''
 
   useEffect(() => {
     const el = host.current
@@ -72,20 +52,20 @@ export function Board({ fen, lastMove, arrow, movable, onMove }: BoardProps) {
     api.current?.set({
       fen,
       turnColor: turnOf(fen),
-      lastMove: lastMove ? (lastMove as Key[]) : undefined,
+      lastMove: last ? squares(last) : undefined,
       viewOnly: movable === null,
       movable: {
         free: false,
         color: movable ? FULL[movable] : undefined,
-        dests: movable ? legalDests(fen) : new Map(),
+        dests: movable ? (legalDests(fen) as Map<Key, Key[]>) : new Map(),
         showDests: true,
-        events: { after: (from, to) => onMoveRef.current?.(toUci(fenRef.current, from, to)) },
+        events: { after: (from, to) => onMoveRef.current?.(uciFromMove(fen, from, to)) },
       },
       drawable: {
-        autoShapes: arrow ? [{ orig: arrow[0] as Key, dest: arrow[1] as Key, brush: 'green' }] : [],
+        autoShapes: arrowKey ? [{ orig: squares(arrowKey)[0], dest: squares(arrowKey)[1], brush: 'green' }] : [],
       },
     })
-  }, [fen, lastMove?.[0], lastMove?.[1], arrow?.[0], arrow?.[1], movable])
+  }, [fen, last, arrowKey, movable])
 
   return <div className="board-wrap" role="group" aria-label={LABEL.boardLabel}><div ref={host} className="board" /></div>
 }

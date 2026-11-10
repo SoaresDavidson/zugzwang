@@ -1,5 +1,7 @@
+import { CATEGORY_LABEL } from '../core/explain'
+import { localizeSan } from '../core/san'
 import { GameError } from '../core/types'
-import type { GameErrorCode } from '../core/types'
+import type { AnalyzedMove, GameErrorCode } from '../core/types'
 import type { Player, Source, TimeClass } from '../core/sources/types'
 
 export const ERROR_MESSAGE: Record<GameErrorCode | 'engine-failed' | 'analysis-failed',(source?: string) => string> = {
@@ -16,8 +18,26 @@ export const ERROR_MESSAGE: Record<GameErrorCode | 'engine-failed' | 'analysis-f
 }
 
 /** Traduz um erro em mensagem; erros que não são GameError usam `fallback`. */
-export function errorMessage(err: unknown, fallback: GameErrorCode, source?: string): string {
-  return ERROR_MESSAGE[err instanceof GameError ? err.code : fallback](source);
+export function errorMessage(
+  err: unknown,
+  fallback: keyof typeof ERROR_MESSAGE,
+  source?: string,
+): string {
+  let code = fallback;
+  if (err instanceof GameError) code = err.code;
+  else if (err instanceof Error && err.message === 'engine-failed') code = 'engine-failed';
+  return ERROR_MESSAGE[code](source);
+}
+
+/** Número em pt-BR com `digits` casas e vírgula decimal. */
+export function formatDecimal(n: number, digits = 1): string {
+  return n.toFixed(digits).replace('.', ',');
+}
+
+/** Nome acessível de um lance na lista: "3... Cf6, Capivarada". */
+export function moveAriaLabel(m: Pick<AnalyzedMove, 'index' | 'color' | 'san' | 'category'>): string {
+  const no = Math.floor(m.index / 2) + 1;
+  return `${no}${m.color === 'w' ? '.' : '...'} ${localizeSan(m.san)}, ${CATEGORY_LABEL[m.category]}`;
 }
 
 export const SOURCE_NAME: Record<Source, string> = { lichess: 'Lichess', chesscom: 'Chess.com' };
@@ -60,7 +80,11 @@ export const LABEL = {
   analysisDone: 'Análise pronta',
   fromCache: 'Resultado guardado neste navegador.',
   boardLabel: 'Tabuleiro',
-  graphLabel: 'Gráfico de avaliação da partida. Clique para ir a um lance.',
+  graphLabel: 'Gráfico de avaliação da partida. Atalho para quem usa mouse ou toque; no teclado, use as setas esquerda e direita.',
+  moveHeading: 'Lance',
+  movesHeading: 'Lances',
+  movesListLabel: 'Lances da partida',
+  loading: 'Carregando a revisão...',
   navLabel: 'Navegar pelos lances',
   first: 'Primeiro lance',
   prev: 'Lance anterior',

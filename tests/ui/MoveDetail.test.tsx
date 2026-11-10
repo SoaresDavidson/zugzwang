@@ -74,11 +74,11 @@ describe('MoveDetail', () => {
     else expect(btn).toBeNull()
   })
 
-  it('modo normal: tabuleiro em fenAfter, lastMove, sem movable e seta do melhor lance', () => {
+  it('modo normal: tabuleiro em fenAfter, lastMove, sem movable e sem seta', () => {
     const move = mk('blunder')
     render(<MoveDetail move={move} before={before} BoardComponent={StubBoard} retry={noRetry} />)
     expect(lastProps()).toMatchObject({
-      fen: move.fenAfter, lastMove: pair(move.uci), movable: null, arrow: ['g7', 'g6'],
+      fen: move.fenAfter, lastMove: pair(move.uci), movable: null, arrow: null,
     })
   })
 
@@ -101,7 +101,7 @@ describe('MoveDetail', () => {
     await user.click(screen.getByText('Tentar de novo'))
     await user.click(screen.getByText('jogar d2d4'))
     expect(retry).toHaveBeenCalledTimes(1)
-    expect(retry).toHaveBeenCalledWith(before, move.fenBefore, 'd2d4', move.color)
+    expect(retry).toHaveBeenCalledWith(before, move.fenBefore, 'd2d4', move.color, expect.any(AbortSignal))
   })
 
   it('retry aceito mostra "Boa! {Rótulo}."', async () => {

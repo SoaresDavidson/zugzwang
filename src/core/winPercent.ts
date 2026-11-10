@@ -1,5 +1,5 @@
 import { MATE_CP } from './thresholds';
-import type { Color, Score } from './types';
+import type { Color, PositionEval, Score } from './types';
 
 export function scoreToCp(s: Score): number {
   return s.kind === 'cp' ? s.value : Math.sign(s.value) * MATE_CP;
@@ -29,4 +29,14 @@ export function isMateFor(s: Score, color: Color): boolean {
 /** Converte um win% das brancas para o ponto de vista de `color`. */
 export function moverPct(whitePct: number, color: Color): number {
   return color === 'w' ? whitePct : 100 - whitePct;
+}
+
+/** win% das brancas depois de cada lance (um ponto por lance, a partir de `evals[1]`). */
+export function whiteWinSeries(evals: PositionEval[]): number[] {
+  return evals.slice(1).map((e) => winPercent(scoreToCp(e.lines[0].score)));
+}
+
+/** win% das brancas depois de cada lance já classificado, a partir de `winAfter` (de quem moveu). */
+export function whiteWinAfterMoves(moves: ReadonlyArray<{ color: Color; winAfter: number }>): number[] {
+  return moves.map((m) => moverPct(m.winAfter, m.color));
 }
