@@ -1,10 +1,10 @@
-import { Chess } from 'chess.js'
 import { Chessground } from 'chessground'
 import type { Api } from 'chessground/api'
 import type { Key } from 'chessground/types'
 import { useEffect, useRef } from 'react'
 import 'chessground/assets/chessground.base.css'
 import 'chessground/assets/chessground.cburnett.css'
+import { legalDests, uciFromMove } from '../../core/moves'
 import type { Color } from '../../core/types'
 import { LABEL } from '../messages'
 
@@ -14,28 +14,6 @@ export type BoardProps = {
   arrow: [string, string] | null
   movable: Color | null
   onMove?: (uci: string) => void
-}
-
-function legalDests(fen: string): Map<Key, Key[]> {
-  const dests = new Map<Key, Key[]>()
-  try {
-    for (const m of new Chess(fen).moves({ verbose: true })) {
-      const list = dests.get(m.from as Key) ?? []
-      list.push(m.to as Key)
-      dests.set(m.from as Key, list)
-    }
-  } catch { /* FEN inválido: sem destinos */ }
-  return dests
-}
-
-/** Promoção sempre para dama: o retry não pergunta a peça. */
-function toUci(fen: string, from: string, to: string): string {
-  try {
-    const promo = new Chess(fen).moves({ verbose: true }).some((m) => m.from === from && m.to === to && m.promotion)
-    return `${from}${to}${promo ? 'q' : ''}`
-  } catch {
-    return `${from}${to}`
-  }
 }
 
 const FULL = { w: 'white', b: 'black' } as const
@@ -77,9 +55,9 @@ export function Board({ fen, lastMove, arrow, movable, onMove }: BoardProps) {
       movable: {
         free: false,
         color: movable ? FULL[movable] : undefined,
-        dests: movable ? legalDests(fen) : new Map(),
+        dests: movable ? (legalDests(fen) as Map<Key, Key[]>) : new Map(),
         showDests: true,
-        events: { after: (from, to) => onMoveRef.current?.(toUci(fenRef.current, from, to)) },
+        events: { after: (from, to) => onMoveRef.current?.(uciFromMove(fenRef.current, from, to)) },
       },
       drawable: {
         autoShapes: arrow ? [{ orig: arrow[0] as Key, dest: arrow[1] as Key, brush: 'green' }] : [],
