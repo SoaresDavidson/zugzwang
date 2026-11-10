@@ -1,12 +1,10 @@
 import type { Opening } from './types';
 import book from './data/openings.json';
+import { toEpd } from './epd';
+
+export { toEpd } from './epd';
 
 const BOOK = book as unknown as Record<string, [string, string]>;
-
-/** Os 4 primeiros campos da FEN (sem contadores de lance). */
-export function toEpd(fen: string): string {
-  return fen.split(' ').slice(0, 4).join(' ');
-}
 
 export function lookupOpening(fen: string): Opening | null {
   const hit = BOOK[toEpd(fen)];

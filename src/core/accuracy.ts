@@ -1,4 +1,12 @@
 import { RATING } from './thresholds';
+import { moverPct } from './winPercent';
+
+const MOVE_WEIGHT_MIN = 0.5;
+const MOVE_WEIGHT_MAX = 12;
+const WINDOW_MIN = 2;
+const WINDOW_MAX = 8;
+const WINDOW_DIVISOR = 10;
+const WINDOW_WARMUP_OFFSET = 2;
 
 const clamp = (x: number, lo: number, hi: number): number => Math.min(hi, Math.max(lo, x));
 
@@ -30,25 +38,21 @@ export function gameAccuracy(whiteWins: number[]): { w: number; b: number } {
   const len = whiteWins.length;
   const n = len - 1;
   if (n < 1) return { w: 100, b: 100 };
-  const windowSize = clamp(Math.floor(n / 10), 2, 8);
+  const windowSize = clamp(Math.floor(n / WINDOW_DIVISOR), WINDOW_MIN, WINDOW_MAX);
   const size = Math.min(windowSize, len);
   const windows: number[][] = [];
-  for (let k = 0; k < windowSize - 2; k++) windows.push(whiteWins.slice(0, size));
+  for (let k = 0; k < windowSize - WINDOW_WARMUP_OFFSET; k++) windows.push(whiteWins.slice(0, size));
   for (let i = 0; i + size <= len; i++) windows.push(whiteWins.slice(i, i + size));
 
-  const acc = { w: [] as number[], b: [] as number[] };
-  const wt = { w: [] as number[], b: [] as number[] };
+  const accuracies = { w: [] as number[], b: [] as number[] };
+  const weights = { w: [] as number[], b: [] as number[] };
   for (let i = 0; i < n; i++) {
-    const weight = clamp(stdDev(windows[Math.min(i, windows.length - 1)]), 0.5, 12);
-    const white = i % 2 === 0;
-    const [before, after] = white
-      ? [whiteWins[i], whiteWins[i + 1]]
-      : [100 - whiteWins[i], 100 - whiteWins[i + 1]];
-    const c = white ? 'w' : 'b';
-    acc[c].push(moveAccuracy(before, after));
-    wt[c].push(weight);
+    const weight = clamp(stdDev(windows[Math.min(i, windows.length - 1)]), MOVE_WEIGHT_MIN, MOVE_WEIGHT_MAX);
+    const color = i % 2 === 0 ? 'w' : 'b';
+    accuracies[color].push(moveAccuracy(moverPct(whiteWins[i], color), moverPct(whiteWins[i + 1], color)));
+    weights[color].push(weight);
   }
-  return { w: combine(acc.w, wt.w), b: combine(acc.b, wt.b) };
+  return { w: combine(accuracies.w, weights.w), b: combine(accuracies.b, weights.b) };
 }
 
 export function estimateRating(accuracy: number): number {

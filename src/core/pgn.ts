@@ -21,6 +21,9 @@ function firstGame(text: string): string {
 
 export function parsePgn(text: string): ParsedGame {
   const src = firstGame(text.replace(/\r\n?/g, '\n').trim());
+  const variant = /\[\s*Variant\s+"([^"]*)"\s*\]/i.exec(src)?.[1];
+  if (variant && variant.trim().toLowerCase() !== 'standard') throw new GameError('variant-unsupported');
+  if (/\[\s*SetUp\s+"1"\s*\]/i.test(src) || /\[\s*FEN\s+"/i.test(src)) throw new GameError('custom-position');
   const chess = new Chess();
   try {
     chess.loadPgn(src);
@@ -31,9 +34,6 @@ export function parsePgn(text: string): ParsedGame {
   for (const [k, v] of Object.entries(chess.getHeaders())) {
     if (typeof v === 'string') headers[k] = v;
   }
-  const variant = headers.Variant;
-  if (variant && variant.toLowerCase() !== 'standard') throw new GameError('variant-unsupported');
-  if (headers.SetUp === '1' || headers.FEN) throw new GameError('custom-position');
 
   const plies: Ply[] = chess.history({ verbose: true }).map((m, index) => ({
     index,

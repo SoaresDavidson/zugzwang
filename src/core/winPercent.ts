@@ -12,6 +12,21 @@ export function winPercent(cp: number): number {
 
 /** win% de `color` dada uma avaliação do ponto de vista das brancas. */
 export function moverWin(s: Score, color: Color): number {
+  return winPercent(moverCp(s, color));
+}
+
+/** cp (mate = ±MATE_CP) do ponto de vista de `color`. */
+export function moverCp(s: Score, color: Color): number {
   const cp = scoreToCp(s);
-  return winPercent(color === 'w' ? cp : -cp);
+  return color === 'w' ? cp : -cp;
+}
+
+/** true só para mate a favor de `color`. */
+export function isMateFor(s: Score, color: Color): boolean {
+  return s.kind === 'mate' && (color === 'w' ? s.value > 0 : s.value < 0);
+}
+
+/** Converte um win% das brancas para o ponto de vista de `color`. */
+export function moverPct(whitePct: number, color: Color): number {
+  return color === 'w' ? whitePct : 100 - whitePct;
 }
