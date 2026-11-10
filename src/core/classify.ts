@@ -1,3 +1,4 @@
+import { isSacrifice } from './material';
 import { BRILLIANT_MAX_LOSS, BRILLIANT_MAX_WIN_BEFORE, GREAT_GAP, GREAT_MAX_SECOND_WIN, LOSS, MATE_CP } from './thresholds';
 import type { Color, MoveCategory, PositionEval } from './types';
 import { isMateFor, moverCp, moverWin } from './winPercent';
@@ -16,6 +17,27 @@ export function moveLoss(i: ClassifyInput): number {
   const before = moverWin(i.before.lines[0].score, i.color);
   const after = moverWin(i.after.lines[0].score, i.color);
   return Math.max(0, before - after);
+}
+
+export interface ClassifyPlyInput {
+  color: Color;
+  uci: string;
+  fenBefore: string;
+  before: PositionEval;
+  after: PositionEval;
+  isBook: boolean;
+}
+
+/** Classifica um ply: o sinal de sacrifício vem da linha principal depois do lance. */
+export function classifyPly(i: ClassifyPlyInput): MoveCategory {
+  return classifyMove({
+    color: i.color,
+    uci: i.uci,
+    before: i.before,
+    after: i.after,
+    isBook: i.isBook,
+    isSacrifice: isSacrifice(i.fenBefore, i.uci, i.after.lines[0]?.pv ?? []),
+  });
 }
 
 export function classifyMove(i: ClassifyInput): MoveCategory {

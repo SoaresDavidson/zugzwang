@@ -3,8 +3,28 @@ import type { AnalyseOptions, MoveCategory } from './types';
 
 /** Sobe a cada mudança de regra de classificação. Invalida o cache. */
 export const RULES_VERSION = 1;
-export const ENGINE_ID = 'sf19-lite-500ms-mpv2';
+export const ENGINE_FILE_MULTI = 'stockfish-19-lite.js';
+export const ENGINE_FILE_SINGLE = 'stockfish-19-lite-single.js';
 export const ANALYSE_OPTIONS: AnalyseOptions = { movetimeMs: 500, multipv: 2 };
+export const ENGINE_ID = `${ENGINE_FILE_MULTI.replace(/\.js$/, '')}-${ANALYSE_OPTIONS.movetimeMs}ms-mpv${ANALYSE_OPTIONS.multipv}`;
+
+/** Configuração do motor. */
+export const ENGINE_HANDSHAKE_TIMEOUT_MS = 10_000;
+export const ENGINE_HASH_MB = 32;
+export const ENGINE_MAX_THREADS = 4;
+
+/** Máximo de partidas devolvidas por busca de usuário. */
+export const MAX_GAMES = 50;
+
+/** Limiares das conquistas. */
+export const ACHIEVEMENT_RULES = {
+  reviewsForTen: 10,
+  monthBrilliants: 5,
+  surgicalAccuracy: 90,
+  cleanGameMoves: 20,
+  streakAccuracy: 80,
+  streakLength: 3,
+} as const;
 
 /** Centipeões equivalentes a um mate. */
 export const MATE_CP = 10000;

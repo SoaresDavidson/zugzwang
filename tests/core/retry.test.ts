@@ -76,7 +76,7 @@ describe('checkRetry', () => {
       const fen = after(START, uci);
       const engine = scriptedEngine({ [fen]: evalAt(fen, 'd7d5', cp(score)) });
       const r = await checkRetry(BEFORE_START, START, uci, 'w', engine);
-      expect(r.accepted).toBe(GOOD_OR_BETTER.includes(r.category));
+      expect(r.accepted).toBe(GOOD_OR_BETTER.includes(r.category!));
     }
   });
 

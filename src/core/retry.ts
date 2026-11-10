@@ -1,6 +1,6 @@
 import { Chess } from 'chess.js';
-import { classifyMove } from './classify';
-import { isSacrifice } from './material';
+import { terminalEval } from './analyzeGame';
+import { classifyPly } from './classify';
 import { parseUci } from './moves';
 import { ANALYSE_OPTIONS, GOOD_OR_BETTER } from './thresholds';
 import type { Color, Engine, MoveCategory, PositionEval } from './types';
@@ -12,17 +12,15 @@ export async function checkRetry(
   color: Color,
   engine: Engine,
   signal?: AbortSignal,
-): Promise<{ category: MoveCategory; accepted: boolean }> {
+): Promise<{ category: MoveCategory | null; accepted: boolean }> {
   const chess = new Chess(fenBefore);
-  chess.move(parseUci(uci));
-  const after = await engine.analyse(chess.fen(), ANALYSE_OPTIONS, signal);
-  const category = classifyMove({
-    color,
-    uci,
-    before,
-    after,
-    isBook: false,
-    isSacrifice: isSacrifice(fenBefore, uci, after.lines[0]?.pv ?? []),
-  });
+  try {
+    chess.move(parseUci(uci));
+  } catch {
+    return { category: null, accepted: false };
+  }
+  const fenAfter = chess.fen();
+  const after = terminalEval(fenAfter) ?? (await engine.analyse(fenAfter, ANALYSE_OPTIONS, signal));
+  const category = classifyPly({ color, uci, fenBefore, before, after, isBook: false });
   return { category, accepted: GOOD_OR_BETTER.includes(category) };
 }

@@ -1,3 +1,5 @@
+import { abortError } from '../core/abort';
+import { ENGINE_HANDSHAKE_TIMEOUT_MS, ENGINE_HASH_MB } from '../core/thresholds';
 import { parseUciInfo } from '../core/uci';
 import type { AnalyseOptions, Color, Engine, EngineLine, PositionEval } from '../core/types';
 import { pickEngineBuild } from './build';
@@ -5,16 +7,9 @@ import { pickEngineBuild } from './build';
 export type WorkerLike = {
   postMessage(msg: string): void;
   onmessage: ((e: { data: string }) => void) | null;
+  onerror?: ((e: unknown) => void) | null;
   terminate(): void;
 };
-
-const HANDSHAKE_TIMEOUT_MS = 10_000;
-
-function abortError(): Error {
-  const e = new Error('aborted');
-  e.name = 'AbortError';
-  return e;
-}
 
 function realWorker(url: string): WorkerLike {
   return new Worker(url) as unknown as WorkerLike;
@@ -23,10 +18,28 @@ function realWorker(url: string): WorkerLike {
 export class StockfishEngine implements Engine {
   private queue: Promise<unknown> = Promise.resolve();
 
+  private readonly pending = new Set<(e: Error) => void>();
+
+  private dead = false;
+
+  /** Chamado uma vez quando o motor morre (erro do worker ou terminate). */
+  onDead: (() => void) | null = null;
+
   private readonly worker: WorkerLike;
 
   private constructor(worker: WorkerLike) {
     this.worker = worker;
+    worker.onerror = () => this.kill();
+  }
+
+  private kill(): void {
+    if (this.dead) return;
+    this.dead = true;
+    this.worker.onmessage = null;
+    this.worker.onerror = null;
+    for (const reject of [...this.pending]) reject(new Error('engine-failed'));
+    this.pending.clear();
+    this.onDead?.();
   }
 
   static create(workerFactory?: (url: string) => WorkerLike): Promise<StockfishEngine> {
@@ -50,11 +63,12 @@ export class StockfishEngine implements Engine {
         done = true;
         clearTimeout(timer);
         worker.onmessage = null;
+        worker.onerror = null;
         worker.terminate();
         reject(new Error('engine-failed'));
       };
-      const timer = setTimeout(fail, HANDSHAKE_TIMEOUT_MS);
-      if (!workerFactory) (worker as unknown as Worker).onerror = fail;
+      const timer = setTimeout(fail, ENGINE_HANDSHAKE_TIMEOUT_MS);
+      worker.onerror = fail;
       worker.onmessage = (e) => {
         if (done) return;
         const line = String(e.data).trim();
@@ -68,16 +82,20 @@ export class StockfishEngine implements Engine {
       };
       worker.postMessage('uci');
       worker.postMessage(`setoption name Threads value ${threads}`);
-      worker.postMessage('setoption name Hash value 32');
+      worker.postMessage(`setoption name Hash value ${ENGINE_HASH_MB}`);
       worker.postMessage('isready');
     });
   }
 
   analyse(fen: string, opts: AnalyseOptions, signal?: AbortSignal): Promise<PositionEval> {
-    const run = () => this.run(fen, opts, signal);
+    if (this.dead) return Promise.reject(new Error('engine-failed'));
+    const run = () => (this.dead ? Promise.reject(new Error('engine-failed')) : this.run(fen, opts, signal));
     const p = this.queue.then(run, run);
     this.queue = p.catch(() => {});
-    return p;
+    return new Promise<PositionEval>((resolve, reject) => {
+      this.pending.add(reject);
+      p.then(resolve, reject).finally(() => this.pending.delete(reject));
+    });
   }
 
   private run(fen: string, opts: AnalyseOptions, signal?: AbortSignal): Promise<PositionEval> {
@@ -115,12 +133,22 @@ export class StockfishEngine implements Engine {
 
   terminate(): void {
     this.worker.terminate();
+    this.kill();
   }
 }
 
 let singleton: Promise<StockfishEngine> | null = null;
 
 export function getEngine(): Promise<StockfishEngine> {
-  singleton ??= StockfishEngine.create().catch((err) => { singleton = null; throw err; });
+  if (!singleton) {
+    const p: Promise<StockfishEngine> = StockfishEngine.create().then(
+      (engine) => {
+        engine.onDead = () => { if (singleton === p) singleton = null; };
+        return engine;
+      },
+      (err) => { if (singleton === p) singleton = null; throw err; },
+    );
+    singleton = p;
+  }
   return singleton;
 }
