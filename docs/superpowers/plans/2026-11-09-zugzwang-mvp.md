@@ -459,7 +459,7 @@ it('melhor sem sugestão', () => expect(explainMove({ category: 'best', bestSan:
   export type TimeClass = 'bullet' | 'blitz' | 'rapid' | 'classical';
   export interface GameSummary {
     id: string; source: Source; url: string;
-    white: { name: string; rating: number | null }; black: { name: string; rating: number | null };
+    white: Player; black: Player; // Player = { name: string | null; rating: number | null; aiLevel: number | null }
     result: '1-0' | '0-1' | '1/2-1/2' | '*'; timeClass: TimeClass; playedAt: number; pgn: string;
   }
   export function fetchLichessGames(username: string, signal?: AbortSignal, fetchFn = fetch): Promise<GameSummary[]>;
@@ -517,7 +517,8 @@ it.each([[404, 'user-not-found'], [429, 'rate-limited'], [500, 'network']])('HTT
 - Produces (`retry.ts`):
   ```ts
   export function checkRetry(before: PositionEval, fenBefore: string, uci: string, color: Color,
-    engine: Engine, signal?: AbortSignal): Promise<{ category: MoveCategory; accepted: boolean }>;
+    engine: Engine, signal?: AbortSignal): Promise<{ category: MoveCategory | null; accepted: boolean }>;
+  // lance ilegal/malformado → { category: null, accepted: false }; posição terminal usa terminalEval sem motor
   ```
 
 `analyzeGame` avalia as `plies.length + 1` posições em sequência com `ANALYSE_OPTIONS` (ou `terminalEval` quando aplicável, sem chamar o motor). Depois de cada posição `i+1`, classifica o ply `i` e chama `onProgress`. `isBook` do ply `i` = `isBookFen(fenAfter)` e todos os plies anteriores foram `book`. `isSacrifice` e `materialDelta` usam `after.lines[0]?.pv ?? []`. `bestSan` vem de converter `before.lines[0].move` com chess.js. `allowsMateIn` = valor absoluto do mate em `after.lines[0]` quando ele é contra quem moveu. `opening` = `lookupOpening` do último ply `book`. Checa `signal.aborted` entre posições e lança `DOMException('Aborted', 'AbortError')`.
@@ -637,7 +638,7 @@ Conquistas fixas (`unlockedAt` = `analyzedAt` da entrada que completou a condiç
 | `primeira-revisao` | Primeira revisão | 1 entrada |
 | `dez-revisoes` | Dez revisões | 10 entradas |
 | `primeiro-brilhante` | Primeiro brilhante | soma de `brilliant` ≥ 1 |
-| `cinco-brilhantes-mes` | Mês brilhante | ≥ 5 `brilliant` em entradas do mesmo mês civil de `now` |
+| `cinco-brilhantes-mes` | Mês brilhante | ≥ 5 `brilliant` em entradas do mesmo mês civil de `now`, no fuso local do navegador |
 | `precisao-90` | Precisão cirúrgica | alguma `accuracy` ≥ 90 |
 | `sem-capivarada` | Partida limpa | alguma entrada com `ownMoves` ≥ 20, `blunder` 0 e `missedMate` 0 |
 | `sequencia-3` | Em sequência | 3 entradas seguidas (ordem de `playedAt ?? analyzedAt`) com `accuracy` ≥ 80 |

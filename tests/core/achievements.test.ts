@@ -37,7 +37,7 @@ const find = (list: Achievement[], id: string) => {
   if (!a) throw new Error(`conquista ausente: ${id}`)
   return a
 }
-const NOW = Date.UTC(2026, 10, 20)
+const NOW = new Date(2026, 10, 20, 12).getTime()
 const many = (n: number, o: EntryOpts = {}) =>
   Array.from({ length: n }, (_, i) => entry({ analyzedAt: 100 + i, ...o }))
 
@@ -103,24 +103,24 @@ describe('evaluateAchievements', () => {
   })
 
   it('cinco brilhantes no mês corrente', () => {
-    const h = [entry({ analyzedAt: Date.UTC(2026, 10, 1), brilliant: 3 }), entry({ analyzedAt: Date.UTC(2026, 10, 15), brilliant: 2 })]
+    const h = [entry({ analyzedAt: new Date(2026, 10, 1, 12).getTime(), brilliant: 3 }), entry({ analyzedAt: new Date(2026, 10, 15, 12).getTime(), brilliant: 2 })]
     expect(find(evaluateAchievements(h, NOW), 'cinco-brilhantes-mes').unlocked).toBe(true)
-    expect(find(evaluateAchievements(h, Date.UTC(2026, 11, 1)), 'cinco-brilhantes-mes').unlocked).toBe(false)
+    expect(find(evaluateAchievements(h, new Date(2026, 11, 1, 12).getTime()), 'cinco-brilhantes-mes').unlocked).toBe(false)
   })
 
   it('cinco-brilhantes-mes: 4 não, 5 sim; unlockedAt da entrada que completou', () => {
-    const a = entry({ analyzedAt: Date.UTC(2026, 10, 10), brilliant: 2 })
-    const b = entry({ analyzedAt: Date.UTC(2026, 10, 12), brilliant: 2 })
+    const a = entry({ analyzedAt: new Date(2026, 10, 10, 12).getTime(), brilliant: 2 })
+    const b = entry({ analyzedAt: new Date(2026, 10, 12, 12).getTime(), brilliant: 2 })
     expect(find(evaluateAchievements([a, b], NOW), 'cinco-brilhantes-mes').unlocked).toBe(false)
-    const c = entry({ analyzedAt: Date.UTC(2026, 10, 14), brilliant: 1 })
+    const c = entry({ analyzedAt: new Date(2026, 10, 14, 12).getTime(), brilliant: 1 })
     expect(find(evaluateAchievements([a, b, c], NOW), 'cinco-brilhantes-mes'))
-      .toMatchObject({ unlocked: true, unlockedAt: Date.UTC(2026, 10, 14) })
+      .toMatchObject({ unlocked: true, unlockedAt: new Date(2026, 10, 14, 12).getTime() })
   })
 
   it('cinco-brilhantes-mes ignora brilhantes de outros meses', () => {
     const h = [
-      entry({ analyzedAt: Date.UTC(2026, 9, 20), brilliant: 3 }),
-      entry({ analyzedAt: Date.UTC(2026, 10, 12), brilliant: 2 }),
+      entry({ analyzedAt: new Date(2026, 9, 20, 12).getTime(), brilliant: 3 }),
+      entry({ analyzedAt: new Date(2026, 10, 12, 12).getTime(), brilliant: 2 }),
     ]
     expect(find(evaluateAchievements(h, NOW), 'cinco-brilhantes-mes').unlocked).toBe(false)
   })
