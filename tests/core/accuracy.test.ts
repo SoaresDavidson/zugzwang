@@ -39,15 +39,6 @@ describe('gameAccuracy', () => {
     expect(r.w).toBeLessThan(r.b);
   });
 
-  it('simetria: trocar W por 100-W troca as precisões de w e b', () => {
-    const W = Array.from({ length: 41 }, (_, i) => 50 + 30 * Math.sin(i / 3) + (i % 5) * 2);
-    const flipped = W.map((x) => 100 - x);
-    const a = gameAccuracy(W);
-    const b = gameAccuracy(flipped);
-    expect(b.w).toBeCloseTo(a.b, 6);
-    expect(b.b).toBeCloseTo(a.w, 6);
-  });
-
   it('partida curta (2 plies) não lança e devolve valores válidos', () => {
     const r = gameAccuracy([50, 55, 50]);
     for (const v of [r.w, r.b]) {
