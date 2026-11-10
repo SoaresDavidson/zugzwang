@@ -1,4 +1,4 @@
-import { BRILLIANT_MAX_LOSS, BRILLIANT_MAX_WIN_BEFORE, GREAT_GAP, LOSS, MATE_CP } from './thresholds';
+import { BRILLIANT_MAX_LOSS, BRILLIANT_MAX_WIN_BEFORE, GREAT_GAP, GREAT_MAX_SECOND_WIN, LOSS, MATE_CP } from './thresholds';
 import type { Color, MoveCategory, PositionEval } from './types';
 import { isMateFor, moverCp, moverWin } from './winPercent';
 
@@ -37,7 +37,10 @@ export function classifyMove(i: ClassifyInput): MoveCategory {
 
   if (i.uci === bestBefore.move) {
     const second = i.before.lines[1];
-    if (second && winBefore - moverWin(second.score, i.color) >= GREAT_GAP) return 'great';
+    if (second) {
+      const secondWin = moverWin(second.score, i.color);
+      if (winBefore - secondWin >= GREAT_GAP && secondWin < GREAT_MAX_SECOND_WIN) return 'great';
+    }
     return 'best';
   }
 
