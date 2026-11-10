@@ -59,5 +59,22 @@ export const LABEL = {
   analyzing: 'Analisando',
   analysisDone: 'Análise pronta',
   fromCache: 'Resultado guardado neste navegador.',
-  reviewSoon: 'A tela de revisão chega na próxima etapa.',
+  boardLabel: 'Tabuleiro',
+  graphLabel: 'Gráfico de avaliação da partida. Clique para ir a um lance.',
+  navLabel: 'Navegar pelos lances',
+  first: 'Primeiro lance',
+  prev: 'Lance anterior',
+  next: 'Próximo lance',
+  last: 'Último lance',
+  retry: 'Tentar de novo',
+  retryPrompt: 'Faça no tabuleiro o lance que você jogaria.',
+  retryRefused: 'Ainda não. Tente outro lance.',
+  showBest: 'Mostrar melhor',
+  backToMove: 'Ver o lance jogado',
+  summary: 'Resumo da partida',
+  accuracy: 'de precisão',
+  white: 'Brancas',
+  black: 'Pretas',
 }
+
+export const retryAccepted = (label: string) => `Boa! ${label}.`
