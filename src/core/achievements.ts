@@ -1,5 +1,5 @@
 import { ACHIEVEMENT_RULES as R } from './thresholds';
-import type { CategoryCounts, Color } from './types';
+import type { CategoryCounts, Color, GameAnalysis } from './types';
 
 export interface Profile { lichess?: string; chesscom?: string }
 
@@ -29,6 +29,31 @@ export function playerColorFor(headers: Record<string, string>, profile: Profile
   if (headers.White && names.includes(headers.White.toLowerCase())) return 'w';
   if (headers.Black && names.includes(headers.Black.toLowerCase())) return 'b';
   return null;
+}
+
+const DATE_RE = /^(\d{4})\.(\d{2})\.(\d{2})$/;
+const TIME_RE = /^(\d{2}):(\d{2}):(\d{2})$/;
+
+function playedAtFrom(headers: Record<string, string>): number | null {
+  const utc = DATE_RE.exec(headers.UTCDate ?? '');
+  if (utc) {
+    const t = TIME_RE.exec(headers.UTCTime ?? '');
+    return Date.UTC(+utc[1], +utc[2] - 1, +utc[3], t ? +t[1] : 0, t ? +t[2] : 0, t ? +t[3] : 0);
+  }
+  const d = DATE_RE.exec(headers.Date ?? '');
+  return d ? Date.UTC(+d[1], +d[2] - 1, +d[3]) : null;
+}
+
+export function historyEntryFor(analysis: GameAnalysis, color: Color, analyzedAt: number): HistoryEntry {
+  return {
+    key: analysis.key,
+    analyzedAt,
+    playedAt: playedAtFrom(analysis.headers),
+    playerColor: color,
+    counts: analysis.counts[color],
+    accuracy: analysis.accuracy[color],
+    ownMoves: analysis.moves.filter((m) => m.color === color).length,
+  };
 }
 
 /** Mês civil no fuso local. */

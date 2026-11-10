@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { flushSync } from 'react-dom'
-import { playerColorFor } from '../core/achievements'
+import { historyEntryFor, playerColorFor } from '../core/achievements'
 import { analyzeGame, cacheKey } from '../core/analyzeGame'
 import type { AnalysisProgress } from '../core/analyzeGame'
 import { isAbortError } from '../core/abort'
@@ -19,9 +19,18 @@ export interface AnalysisState {
 
 const IDLE: AnalysisState = { status: 'idle', progress: null, analysis: null, error: null, fromCache: false }
 
-function playedAt(headers: Record<string, string>): number | null {
-  const m = /^(\d{4})\.(\d{2})\.(\d{2})$/.exec(headers.UTCDate ?? headers.Date ?? '')
-  return m ? Date.UTC(+m[1], +m[2] - 1, +m[3]) : null
+/** Armazenamento é opcional (IndexedDB bloqueado, modo privado, cota): falha vira `fallback`. */
+async function safely<T>(fn: () => Promise<T>, fallback: T): Promise<T> {
+  try {
+    return await fn()
+  } catch {
+    return fallback
+  }
+}
+
+/** Identidade por conteúdo: reparsear o mesmo PGN a cada render não reinicia a análise. */
+function gameId(game: ParsedGame | null): string | null {
+  return game ? `${JSON.stringify(game.headers)}|${game.plies.map((p) => p.uci).join(' ')}` : null
 }
 
 export function useAnalysis(
@@ -29,9 +38,13 @@ export function useAnalysis(
   engineFactory: () => Promise<Engine> = getEngine,
 ): AnalysisState {
   const [state, setState] = useState<AnalysisState>(IDLE)
+  const latest = useRef({ game, engineFactory })
+  latest.current = { game, engineFactory }
+  const id = gameId(game)
 
   useEffect(() => {
-    if (!game) {
+    const { game: current, engineFactory: factory } = latest.current
+    if (!current) {
       setState(IDLE)
       return
     }
@@ -39,49 +52,48 @@ export function useAnalysis(
     const { signal } = ctrl
     setState({ ...IDLE, status: 'running' })
 
+    async function saveHistory(analysis: GameAnalysis) {
+      const color = playerColorFor(analysis.headers, await safely(getProfile, {}))
+      if (color) await safely(() => putHistory(historyEntryFor(analysis, color, Date.now())), undefined)
+    }
+
     ;(async () => {
       try {
-        const key = await cacheKey(game)
-        const cached = await getCachedAnalysis(key)
+        const key = await cacheKey(current)
+        const cached = await safely(() => getCachedAnalysis(key), undefined)
         if (signal.aborted) return
         if (cached) {
+          await saveHistory(cached)
+          if (signal.aborted) return
           setState({ status: 'done', progress: null, analysis: cached, error: null, fromCache: true })
           return
         }
-        const engine = await engineFactory()
+        const engine = await Promise.resolve().then(factory).catch((e: unknown) => {
+          throw isAbortError(e) ? e : new Error('engine-failed')
+        })
         if (signal.aborted) return
         const analysis = await analyzeGame(
-          game,
+          current,
           engine,
+          // flushSync: o React agrupa setState feitos fora de eventos; sem ele, posições que o
+          // motor devolve em sequência rápida colapsariam num único render e a barra pularia.
           (progress) => { if (!signal.aborted) flushSync(() => setState((s) => ({ ...s, progress }))) },
           signal,
         )
         if (signal.aborted) return
-        await putAnalysis(analysis)
-        const color = playerColorFor(game.headers, await getProfile())
-        if (color) {
-          await putHistory({
-            key: analysis.key,
-            analyzedAt: Date.now(),
-            playedAt: playedAt(game.headers),
-            playerColor: color,
-            counts: analysis.counts[color],
-            accuracy: analysis.accuracy[color],
-            ownMoves: analysis.moves.filter((m) => m.color === color).length,
-          })
-        }
+        await safely(() => putAnalysis(analysis), undefined)
+        await saveHistory(analysis)
         if (signal.aborted) return
         setState({ status: 'done', progress: null, analysis, error: null, fromCache: false })
       } catch (e) {
         if (signal.aborted || isAbortError(e)) return
-        setState({ ...IDLE, status: 'error', error: ERROR_MESSAGE['engine-failed']() })
+        const code = e instanceof Error && e.message === 'engine-failed' ? 'engine-failed' : 'analysis-failed'
+        setState({ ...IDLE, status: 'error', error: ERROR_MESSAGE[code]() })
       }
     })()
 
     return () => ctrl.abort()
-    // engineFactory é estável por contrato; a análise recomeça só quando a partida muda.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [game])
+  }, [id])
 
   return state
 }

@@ -27,8 +27,9 @@ describe('ERROR_MESSAGE', () => {
     expect(ERROR_MESSAGE.network(f)).toBe(`Falha de conexão com o ${f}.`)
   })
 
-  it('tem exatamente as 8 chaves', () => {
+  it('tem exatamente as 9 chaves', () => {
     expect(Object.keys(ERROR_MESSAGE).sort()).toEqual([
+      'analysis-failed',
       'custom-position', 'empty', 'engine-failed', 'invalid-pgn',
       'network', 'rate-limited', 'user-not-found', 'variant-unsupported',
     ])
