@@ -14,6 +14,8 @@ export const LOSS = { excellent: 2, good: 5, inaccuracy: 10, mistake: 20, blunde
 
 /** Diferença mínima de win% entre 1º e 2º lance do motor para "ótimo". */
 export const GREAT_GAP = 20;
+/** Win% máximo (ponto de vista de quem move) da segunda linha para o lance ser "ótimo"; acima disso as alternativas ainda ganham. Calibrar na Task 15. */
+export const GREAT_MAX_SECOND_WIN = 70;
 export const BRILLIANT_MAX_LOSS = 2;
 export const BRILLIANT_MAX_WIN_BEFORE = 90;
 export const SACRIFICE_MIN = 2;
